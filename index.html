@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NATO & Greenland Strategic Globe</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #tooltip {
+      position: absolute;
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      border-radius: 4px;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+/* ================= SCENE ================= */
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+// North Pole perspective
+camera.position.set(0, 150, 0);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+/* ================= CONTROLS ================= */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enablePan = false;
+controls.minDistance = 80;
+controls.maxDistance = 300;
+
+/* ================= LIGHTING ================= */
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(100, 100, 100);
+scene.add(dirLight);
+
+/* ================= GLOBE ================= */
+const globeRadius = 50;
+const globeGeometry = new THREE.SphereGeometry(globeRadius, 64, 64);
+
+const globeTexture = new THREE.TextureLoader().load(
+  "https://cdn.jsdelivr.net/gh/visualizedata/earth-textures@main/2_no_clouds_4k.jpg"
+);
+
+const globeMaterial = new THREE.MeshPhongMaterial({ map: globeTexture });
+const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+scene.add(globe);
+
+/* ================= RED OVERLAYS ================= */
+// Simple geographic mask approximation
+const highlightMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  transparent: true,
+  opacity: 0.65
+});
+
+// Greenland (approximate lat/lon coverage)
+addRegion(72, -40, 18);   // Greenland
+addRegion(40, -100, 25);  // United States
+
+function addRegion(lat, lon, size) {
+  const geom = new THREE.SphereGeometry(size, 32, 32);
+  const mesh = new THREE.Mesh(geom, highlightMaterial);
+  const pos = latLonToVector3(lat, lon, globeRadius + 0.5);
+  mesh.position.copy(pos);
+  scene.add(mesh);
+}
+
+/* ================= NATO BASES ================= */
+const natoBases = [
+  { name: "Ramstein Air Base (Germany)", lat: 49.44, lon: 7.60 },
+  { name: "RAF Lakenheath (UK)", lat: 52.41, lon: 0.56 },
+  { name: "Aviano Air Base (Italy)", lat: 46.03, lon: 12.60 },
+  { name: "Incirlik Air Base (Turkey)", lat: 37.00, lon: 35.43 },
+  { name: "Camp Bondsteel (Kosovo)", lat: 42.36, lon: 21.25 },
+  { name: "Naval Base Rota (Spain)", lat: 36.62, lon: -6.35 },
+  { name: "Ämari Air Base (Estonia)", lat: 59.26, lon: 24.20 },
+  { name: "Šiauliai Air Base (Lithuania)", lat: 55.89, lon: 23.39 }
+];
+
+const baseGroup = new THREE.Group();
+scene.add(baseGroup);
+
+const baseGeometry = new THREE.SphereGeometry(0.9, 16, 16);
+const baseMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+natoBases.forEach(base => {
+  const mesh = new THREE.Mesh(baseGeometry, baseMaterial);
+  const pos = latLonToVector3(base.lat, base.lon, globeRadius + 1);
+  mesh.position.copy(pos);
+  mesh.userData = base;
+  baseGroup.add(mesh);
+});
+
+/* ================= INTERACTION ================= */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById("tooltip");
+
+window.addEventListener("mousemove", e => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(baseGroup.children);
+
+  if (intersects.length > 0) {
+    const base = intersects[0].object.userData;
+    tooltip.style.display = "block";
+    tooltip.style.left = e.clientX + 10 + "px";
+    tooltip.style.top = e.clientY + 10 + "px";
+    tooltip.innerHTML = base.name;
+  } else {
+    tooltip.style.display = "none";
+  }
+});
+
+/* ================= HELPERS ================= */
+function latLonToVector3(lat, lon, radius) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+/* ================= RENDER LOOP ================= */
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
