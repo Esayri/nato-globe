@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Interactive Arctic NATO Globe</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #111; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+  }
 </style>
 </head>
 <body>
 
-<script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+<script type="module">
+import * as THREE from "https://unpkg.com/three@0.155.0/build/three.module.js";
+import { OrbitControls } from "https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js";
 
-<script>
 /* Scene */
 const scene = new THREE.Scene();
 
-/* Camera — North Pole perspective */
+/* Camera — Arctic biased */
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
@@ -32,12 +36,12 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 /* Controls */
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 80;
 controls.maxDistance = 200;
-controls.maxPolarAngle = Math.PI / 1.8; // prevents flipping under the globe
+controls.maxPolarAngle = Math.PI / 1.8;
 
 /* Lighting */
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -53,7 +57,7 @@ const globe = new THREE.Mesh(
 );
 scene.add(globe);
 
-/* Helper: lat/lon to 3D position */
+/* Lat/Lon helper */
 function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * Math.PI / 180;
   const theta = (lon + 180) * Math.PI / 180;
@@ -109,7 +113,6 @@ natoBases.forEach(base => {
 function animate() {
   requestAnimationFrame(animate);
 
-  // subtle auto-rotation
   globe.rotation.y += 0.001;
 
   controls.update();
