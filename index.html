@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Arctic NATO Globe</title>
+<title>Interactive Arctic NATO Globe</title>
 <style>
   body { margin: 0; overflow: hidden; background: #111; }
 </style>
@@ -10,26 +10,34 @@
 <body>
 
 <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
 /* Scene */
 const scene = new THREE.Scene();
 
-/* Camera — North Pole biased */
+/* Camera — North Pole perspective */
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-camera.position.set(0, 80, 120);
-camera.lookAt(0, 0, 0);
+camera.position.set(0, 90, 130);
 
 /* Renderer */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor(0x111111);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+/* Controls */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 80;
+controls.maxDistance = 200;
+controls.maxPolarAngle = Math.PI / 1.8; // prevents flipping under the globe
 
 /* Lighting */
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -45,7 +53,7 @@ const globe = new THREE.Mesh(
 );
 scene.add(globe);
 
-/* Helper: lat/lon to sphere position */
+/* Helper: lat/lon to 3D position */
 function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * Math.PI / 180;
   const theta = (lon + 180) * Math.PI / 180;
@@ -56,10 +64,10 @@ function latLonToVector3(lat, lon, radius) {
   );
 }
 
-/* RED material */
+/* Red material */
 const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
-/* Greenland highlight */
+/* Greenland */
 const greenland = new THREE.Mesh(
   new THREE.SphereGeometry(10, 32, 32),
   redMat
@@ -67,7 +75,7 @@ const greenland = new THREE.Mesh(
 greenland.position.copy(latLonToVector3(72, -40, globeRadius + 0.5));
 scene.add(greenland);
 
-/* United States highlight */
+/* USA */
 const usa = new THREE.Mesh(
   new THREE.SphereGeometry(12, 32, 32),
   redMat
@@ -75,13 +83,13 @@ const usa = new THREE.Mesh(
 usa.position.copy(latLonToVector3(39, -98, globeRadius + 0.5));
 scene.add(usa);
 
-/* NATO bases in Europe (representative list) */
+/* NATO bases */
 const natoBases = [
   { name: "Ramstein (Germany)", lat: 49.44, lon: 7.60 },
   { name: "RAF Lakenheath (UK)", lat: 52.41, lon: 0.56 },
   { name: "Aviano (Italy)", lat: 46.03, lon: 12.60 },
   { name: "Incirlik (Turkey)", lat: 37.00, lon: 35.43 },
-  { name: "Rota Naval Base (Spain)", lat: 36.62, lon: -6.35 },
+  { name: "Rota (Spain)", lat: 36.62, lon: -6.35 },
   { name: "Ämari (Estonia)", lat: 59.26, lon: 24.20 },
   { name: "Šiauliai (Lithuania)", lat: 55.89, lon: 23.39 }
 ];
@@ -100,7 +108,11 @@ natoBases.forEach(base => {
 /* Animate */
 function animate() {
   requestAnimationFrame(animate);
-  globe.rotation.y += 0.002;
+
+  // subtle auto-rotation
+  globe.rotation.y += 0.001;
+
+  controls.update();
   renderer.render(scene, camera);
 }
 animate();
