@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Arctic Globe – Step 2</title>
+<title>Arctic NATO Globe</title>
 <style>
   body { margin: 0; overflow: hidden; background: #111; }
 </style>
@@ -15,14 +15,14 @@
 /* Scene */
 const scene = new THREE.Scene();
 
-/* Camera */
+/* Camera — North Pole biased */
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-camera.position.set(0, 0, 120);
+camera.position.set(0, 80, 120);
 camera.lookAt(0, 0, 0);
 
 /* Renderer */
@@ -31,18 +31,71 @@ renderer.setClearColor(0x111111);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-/* Lights */
+/* Lighting */
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const light = new THREE.DirectionalLight(0xffffff, 0.8);
 light.position.set(100, 100, 100);
 scene.add(light);
 
 /* Globe */
+const globeRadius = 50;
 const globe = new THREE.Mesh(
-  new THREE.SphereGeometry(50, 64, 64),
+  new THREE.SphereGeometry(globeRadius, 64, 64),
   new THREE.MeshPhongMaterial({ color: 0x2e86ff })
 );
 scene.add(globe);
+
+/* Helper: lat/lon to sphere position */
+function latLonToVector3(lat, lon, radius) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+/* RED material */
+const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+/* Greenland highlight */
+const greenland = new THREE.Mesh(
+  new THREE.SphereGeometry(10, 32, 32),
+  redMat
+);
+greenland.position.copy(latLonToVector3(72, -40, globeRadius + 0.5));
+scene.add(greenland);
+
+/* United States highlight */
+const usa = new THREE.Mesh(
+  new THREE.SphereGeometry(12, 32, 32),
+  redMat
+);
+usa.position.copy(latLonToVector3(39, -98, globeRadius + 0.5));
+scene.add(usa);
+
+/* NATO bases in Europe (representative list) */
+const natoBases = [
+  { name: "Ramstein (Germany)", lat: 49.44, lon: 7.60 },
+  { name: "RAF Lakenheath (UK)", lat: 52.41, lon: 0.56 },
+  { name: "Aviano (Italy)", lat: 46.03, lon: 12.60 },
+  { name: "Incirlik (Turkey)", lat: 37.00, lon: 35.43 },
+  { name: "Rota Naval Base (Spain)", lat: 36.62, lon: -6.35 },
+  { name: "Ämari (Estonia)", lat: 59.26, lon: 24.20 },
+  { name: "Šiauliai (Lithuania)", lat: 55.89, lon: 23.39 }
+];
+
+natoBases.forEach(base => {
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2, 16, 16),
+    redMat
+  );
+  marker.position.copy(
+    latLonToVector3(base.lat, base.lon, globeRadius + 1)
+  );
+  scene.add(marker);
+});
 
 /* Animate */
 function animate() {
